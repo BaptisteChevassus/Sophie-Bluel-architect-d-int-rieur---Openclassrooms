@@ -208,3 +208,12 @@ footer nav ul {
     background: #1D6154;
     color: white;
 }
+
+.gallery-error {
+    color: #c0392b;
+    font-style: italic;
+    text-align: center;
+    width: 100%;
+	grid-column: 1 / -1;
+
+}

@@ -1,8 +1,20 @@
+// URL de base de l'API
+const API_URL = "http://localhost:5678/api";
+
 // Récupération des travaux depuis l'API
 async function getWorks() {
-    const response = await fetch("http://localhost:5678/api/works");
+    const response = await fetch(`${API_URL}/works`);
+    if (!response.ok) throw new Error(`Erreur HTTP : ${response.status}`);
     const works = await response.json();
     return works;
+}
+
+// Récupération des catégories depuis l'API
+async function getCategories() {
+    const response = await fetch(`${API_URL}/categories`);
+    if (!response.ok) throw new Error(`Erreur HTTP : ${response.status}`);
+    const categories = await response.json();
+    return categories;
 }
 
 // Affichage des travaux dans la galerie
@@ -23,19 +35,6 @@ function displayWorks(works) {
         figure.appendChild(figcaption);
         gallery.appendChild(figure);
     });
-}
-
-// Initialisation
-Promise.all([getWorks(), getCategories()]).then(([works, categories]) => {
-    displayWorks(works);
-    displayFilters(categories, works);
-});
-
-// Récupération des catégories depuis l'API
-async function getCategories() {
-    const response = await fetch("http://localhost:5678/api/categories");
-    const categories = await response.json();
-    return categories;
 }
 
 // Affichage des boutons de filtre
@@ -74,3 +73,16 @@ function setActiveButton(activeBtn) {
     });
     activeBtn.classList.add("active");
 }
+
+// Initialisation
+Promise.all([getWorks(), getCategories()])
+    .then(([works, categories]) => {
+        displayWorks(works);
+        displayFilters(categories, works);
+    })
+    //si impossible de récupérer data de l'API on affiche un front au cas ou
+    .catch((error) => {
+        console.error("Erreur lors du chargement des données :", error);
+        const gallery = document.querySelector(".gallery");
+        gallery.innerHTML = "<p class='gallery-error'>Impossible de charger les projets. Veuillez réessayer plus tard.</p>";
+    });
