@@ -26,6 +26,51 @@ function displayWorks(works) {
 }
 
 // Initialisation
-getWorks().then((works) => {
+Promise.all([getWorks(), getCategories()]).then(([works, categories]) => {
     displayWorks(works);
+    displayFilters(categories, works);
 });
+
+// Récupération des catégories depuis l'API
+async function getCategories() {
+    const response = await fetch("http://localhost:5678/api/categories");
+    const categories = await response.json();
+    return categories;
+}
+
+// Affichage des boutons de filtre
+function displayFilters(categories, works) {
+    const filtersContainer = document.querySelector(".filters");
+    filtersContainer.innerHTML = "";
+
+    // Bouton "Tous" par défaut
+    const allButton = document.createElement("button");
+    allButton.textContent = "Tous";
+    allButton.classList.add("filter-btn", "active");
+    allButton.addEventListener("click", () => {
+        displayWorks(works);
+        setActiveButton(allButton);
+    });
+    filtersContainer.appendChild(allButton);
+
+    // Boutons par catégorie
+    categories.forEach((category) => {
+        const button = document.createElement("button");
+        button.textContent = category.name;
+        button.classList.add("filter-btn");
+        button.addEventListener("click", () => {
+            const filtered = works.filter((work) => work.category.id === category.id);
+            displayWorks(filtered);
+            setActiveButton(button);
+        });
+        filtersContainer.appendChild(button);
+    });
+}
+
+// Gestion du bouton actif
+function setActiveButton(activeBtn) {
+    document.querySelectorAll(".filter-btn").forEach((btn) => {
+        btn.classList.remove("active");
+    });
+    activeBtn.classList.add("active");
+}
