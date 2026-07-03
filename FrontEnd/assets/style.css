@@ -281,3 +281,10 @@ footer nav ul {
 	text-decoration: underline;
 	margin-top: 5px;
 }
+
+.login-error {
+    color: #c0392b;
+    font-style: italic;
+    text-align: center;
+    margin-top: 10px;
+}
