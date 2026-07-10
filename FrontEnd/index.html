@@ -79,6 +79,44 @@
 		</ul>
 	</nav>
 </footer>
+
+<!-- Overlay et modale -->
+<div id="modal-overlay">
+    <div id="modal">
+
+        <!-- Vue 1 : Galerie -->
+        <div id="modal-gallery">
+            <button class="modal-close">✕</button>
+            <h3>Galerie photo</h3>
+            <div id="modal-gallery-grid"></div>
+            <hr>
+            <button id="modal-add-btn">Ajouter une photo</button>
+        </div>
+
+        <!-- Vue 2 : Formulaire ajout -->
+        <div id="modal-form" class="hidden">
+            <button id="modal-back">←</button>
+            <button class="modal-close">✕</button>
+            <h3>Ajout photo</h3>
+            <form id="add-work-form">
+                <div id="upload-zone">
+                    <img src="./assets/icons/image-placeholder.png" alt="">
+                    <label for="work-image">+ Ajouter photo</label>
+                    <input type="file" id="work-image" name="image" accept=".jpg,.png" hidden>
+                    <p>jpg, png : 4mo max</p>
+                </div>
+                <label for="work-title">Titre</label>
+                <input type="text" id="work-title" name="title">
+                <label for="work-category">Catégorie</label>
+                <select id="work-category" name="category"></select>
+                <hr>
+                <button type="submit" id="validate-btn">Valider</button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
 <script src="./assets/script.js"></script>
 </body>
 </html>
