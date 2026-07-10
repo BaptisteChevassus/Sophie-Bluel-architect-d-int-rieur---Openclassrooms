@@ -74,13 +74,31 @@ function setActiveButton(activeBtn) {
     activeBtn.classList.add("active");
 }
 
+// Vérification de l'authentification
+function checkAuth() {
+    const token = localStorage.getItem("token");
+    const loginNav = document.getElementById("login-nav");
+
+    if (token) {
+        document.body.classList.add("is-logged");
+        loginNav.innerHTML = "<a id='logout-btn' href='#'>logout</a>";
+
+        document.getElementById("logout-btn").addEventListener("click", (e) => {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            window.location.reload();
+        });
+    }
+}
+
 // Initialisation
 Promise.all([getWorks(), getCategories()])
     .then(([works, categories]) => {
         displayWorks(works);
         displayFilters(categories, works);
+        checkAuth();
     })
-    //si impossible de récupérer data de l'API on affiche un front au cas ou
+    //si impossible de récupérer data de l'API on affiche un front au cas où
     .catch((error) => {
         console.error("Erreur lors du chargement des données :", error);
         const gallery = document.querySelector(".gallery");
