@@ -147,6 +147,117 @@ function displayModalGallery(works) {
     });
 }
 
+// Remplissage du select des catégories dans le formulaire
+function populateCategorySelect(categories) {
+    const select = document.getElementById("work-category");
+    select.innerHTML = '<option value="" selected disabled></option>';
+
+    categories.forEach((category) => {
+        const option = document.createElement("option");
+        option.value = category.id;
+        option.textContent = category.name;
+        select.appendChild(option);
+    });
+}
+
+// Active/désactive le style du bouton valider selon la validité du formulaire
+function updateValidateButtonState() {
+    const titleInput = document.getElementById("work-title");
+    const categorySelect = document.getElementById("work-category");
+    const fileInput = document.getElementById("work-image");
+    const validateBtn = document.getElementById("validate-btn");
+
+    const isValid = titleInput.value !== "" && categorySelect.value !== "" && fileInput.files.length > 0;
+    validateBtn.classList.toggle("valid", isValid);
+}
+
+// Prévisualisation de l'image sélectionnée
+function initImagePreview() {
+    const fileInput = document.getElementById("work-image");
+    const uploadZone = document.getElementById("upload-zone");
+
+    fileInput.addEventListener("change", () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+            uploadZone.innerHTML = `
+                <img src="${reader.result}" class="preview-img" alt="Prévisualisation">
+                <input type="file" id="work-image" name="image" accept=".jpg,.png" hidden>
+            `;
+
+            // Réattache le fichier sélectionné au nouvel input recréé
+            const newInput = document.getElementById("work-image");
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            newInput.files = dataTransfer.files;
+
+            updateValidateButtonState();
+        });
+        reader.readAsDataURL(file);
+    });
+}
+
+// Réinitialisation visuelle de la zone d'upload
+function resetUploadZone() {
+    const uploadZone = document.getElementById("upload-zone");
+    uploadZone.innerHTML = `
+        <img src="./assets/icons/image-placeholder.png" alt="">
+        <label for="work-image">+ Ajouter photo</label>
+        <input type="file" id="work-image" name="image" accept=".jpg,.png" hidden>
+        <p>jpg, png : 4mo max</p>
+    `;
+    initImagePreview();
+}
+
+// Ajout d'un nouveau travail
+async function addWork(e) {
+    e.preventDefault();
+
+    const existingError = document.getElementById("form-error");
+    if (existingError) existingError.remove();
+
+    const titleInput = document.getElementById("work-title");
+    const categorySelect = document.getElementById("work-category");
+    const fileInput = document.getElementById("work-image");
+    const file = fileInput.files[0];
+
+    if (!titleInput.value || !categorySelect.value || !file) {
+        const form = document.getElementById("add-work-form");
+        form.innerHTML += "<p id='form-error' class='login-error'>Veuillez remplir tous les champs.</p>";
+        return;
+    }
+
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("title", titleInput.value);
+    formData.append("category", categorySelect.value);
+
+    const response = await fetch(`${API_URL}/works`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+    });
+
+    if (response.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+        return;
+    }
+
+    if (response.ok) {
+        const form = document.getElementById("add-work-form");
+        form.reset();
+        resetUploadZone();
+        updateValidateButtonState();
+        document.body.classList.remove("modal-open");
+    }
+}
+
 // Gestion de la modale
 function initModal() {
     const overlay = document.getElementById("modal-overlay");
@@ -156,6 +267,9 @@ function initModal() {
     const backBtn = document.getElementById("modal-back");
     const modalGallery = document.getElementById("modal-gallery");
     const modalForm = document.getElementById("modal-form");
+    const addWorkForm = document.getElementById("add-work-form");
+    const titleInput = document.getElementById("work-title");
+    const categorySelect = document.getElementById("work-category");
 
     // Ouvrir la modale
     editBtn.addEventListener("click", () => {
@@ -187,6 +301,14 @@ function initModal() {
         modalForm.classList.add("hidden");
         modalGallery.classList.remove("hidden");
     });
+
+    // Preview image et soumission du formulaire
+    initImagePreview();
+    addWorkForm.addEventListener("submit", addWork);
+
+    // Mise à jour du style du bouton valider selon la saisie
+    titleInput.addEventListener("input", updateValidateButtonState);
+    categorySelect.addEventListener("change", updateValidateButtonState);
 }
 
 // Initialisation
@@ -198,6 +320,7 @@ Promise.all([getWorks(), getCategories()])
         const isLogged = checkAuth();
         if (isLogged) {
             displayModalGallery(works);
+            populateCategorySelect(categories);
             initModal();
         }
     })
