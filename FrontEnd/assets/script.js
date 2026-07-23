@@ -95,7 +95,7 @@ function checkAuth() {
 }
 
 // Suppression d'un travail
-async function deleteWork(id, figureElement) {
+async function deleteWork(id, figureElement, works) {
     const token = localStorage.getItem("token");
 
     const response = await fetch(`${API_URL}/works/${id}`, {
@@ -115,6 +115,9 @@ async function deleteWork(id, figureElement) {
         figureElement.remove();
         const workToRemove = document.querySelector(`.gallery figure[data-id="${id}"]`);
         if (workToRemove) workToRemove.remove();
+
+        const index = works.findIndex((work) => work.id === id);
+        if (index !== -1) works.splice(index, 1);
     }
 }
 
@@ -138,7 +141,7 @@ function displayModalGallery(works) {
 </svg>`;
 
         deleteBtn.addEventListener("click", () => {
-            deleteWork(work.id, figure);
+            deleteWork(work.id, figure, works);
         });
 
         figure.appendChild(img);
@@ -187,7 +190,6 @@ function initImagePreview() {
                 <input type="file" id="work-image" name="image" accept=".jpg,.png" hidden>
             `;
 
-            // Réattache le fichier sélectionné au nouvel input recréé
             const newInput = document.getElementById("work-image");
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
@@ -212,7 +214,7 @@ function resetUploadZone() {
 }
 
 // Ajout d'un nouveau travail
-async function addWork(e) {
+async function addWork(e, works, categories) {
     e.preventDefault();
 
     const existingError = document.getElementById("form-error");
@@ -250,6 +252,20 @@ async function addWork(e) {
     }
 
     if (response.ok) {
+        // L'API ne renvoie pas l'objet "category" complet, on le reconstruit
+        // à partir de la catégorie sélectionnée dans le formulaire
+        const newWork = await response.json();
+        newWork.category = {
+            id: Number(categorySelect.value),
+            name: categorySelect.options[categorySelect.selectedIndex].textContent,
+        };
+
+        // Ajout du nouveau travail au tableau partagé, puis réaffichage
+        works.push(newWork);
+        displayWorks(works);
+        displayFilters(categories, works);
+        displayModalGallery(works);
+
         const form = document.getElementById("add-work-form");
         form.reset();
         resetUploadZone();
@@ -259,7 +275,7 @@ async function addWork(e) {
 }
 
 // Gestion de la modale
-function initModal() {
+function initModal(works, categories) {
     const overlay = document.getElementById("modal-overlay");
     const editBtn = document.getElementById("edit-btn");
     const closeButtons = document.querySelectorAll(".modal-close");
@@ -304,7 +320,9 @@ function initModal() {
 
     // Preview image et soumission du formulaire
     initImagePreview();
-    addWorkForm.addEventListener("submit", addWork);
+    addWorkForm.addEventListener("submit", (e) => {
+        addWork(e, works, categories);
+    });
 
     // Mise à jour du style du bouton valider selon la saisie
     titleInput.addEventListener("input", updateValidateButtonState);
@@ -321,7 +339,7 @@ Promise.all([getWorks(), getCategories()])
         if (isLogged) {
             displayModalGallery(works);
             populateCategorySelect(categories);
-            initModal();
+            initModal(works, categories);
         }
     })
     // si impossible de récupérer data de l'API on affiche un front au cas où
