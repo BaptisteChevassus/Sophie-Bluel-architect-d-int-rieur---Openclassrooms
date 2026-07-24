@@ -187,13 +187,21 @@ function initImagePreview() {
         reader.addEventListener("load", () => {
             uploadZone.innerHTML = `
                 <img src="${reader.result}" class="preview-img" alt="Prévisualisation">
+                <button type="button" id="remove-image-btn" aria-label="Supprimer l'image">✕</button>
                 <input type="file" id="work-image" name="image" accept=".jpg,.png" hidden>
             `;
 
+            // Réattache le fichier sélectionné au nouvel input recréé
             const newInput = document.getElementById("work-image");
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
             newInput.files = dataTransfer.files;
+
+            // Bouton pour retirer l'image sans fermer la modale
+            document.getElementById("remove-image-btn").addEventListener("click", () => {
+                resetUploadZone();
+                updateValidateButtonState();
+            });
 
             updateValidateButtonState();
         });
@@ -213,6 +221,17 @@ function resetUploadZone() {
     initImagePreview();
 }
 
+// Réinitialisation complète du formulaire d'ajout (champs, image, bouton, erreur)
+function resetAddWorkForm() {
+    const form = document.getElementById("add-work-form");
+    const existingError = document.getElementById("form-error");
+
+    form.reset();
+    resetUploadZone();
+    updateValidateButtonState();
+    if (existingError) existingError.remove();
+}
+
 // Ajout d'un nouveau travail
 async function addWork(e, works, categories) {
     e.preventDefault();
@@ -227,7 +246,7 @@ async function addWork(e, works, categories) {
 
     if (!titleInput.value || !categorySelect.value || !file) {
         const form = document.getElementById("add-work-form");
-        form.innerHTML += "<p id='form-error' class='login-error'>Veuillez remplir tous les champs.</p>";
+        form.insertAdjacentHTML("beforeend", "<p id='form-error' class='login-error'>Veuillez remplir tous les champs.</p>");
         return;
     }
 
@@ -266,10 +285,7 @@ async function addWork(e, works, categories) {
         displayFilters(categories, works);
         displayModalGallery(works);
 
-        const form = document.getElementById("add-work-form");
-        form.reset();
-        resetUploadZone();
-        updateValidateButtonState();
+        resetAddWorkForm();
         document.body.classList.remove("modal-open");
     }
 }
@@ -296,6 +312,7 @@ function initModal(works, categories) {
     closeButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
             document.body.classList.remove("modal-open");
+            resetAddWorkForm();
         });
     });
 
@@ -303,6 +320,7 @@ function initModal(works, categories) {
     overlay.addEventListener("click", (e) => {
         if (e.target === overlay) {
             document.body.classList.remove("modal-open");
+            resetAddWorkForm();
         }
     });
 
