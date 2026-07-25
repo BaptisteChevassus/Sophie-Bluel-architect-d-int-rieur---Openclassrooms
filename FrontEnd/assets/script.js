@@ -94,33 +94,6 @@ function checkAuth() {
     return !!token;
 }
 
-// Suppression d'un travail
-async function deleteWork(id, figureElement, works) {
-    const token = localStorage.getItem("token");
-
-    const response = await fetch(`${API_URL}/works/${id}`, {
-        method: "DELETE",
-        headers: {
-            "Authorization": `Bearer ${token}`,
-        },
-    });
-
-    if (response.status === 401) {
-        localStorage.removeItem("token");
-        window.location.href = "login.html";
-        return;
-    }
-
-    if (response.ok) {
-        figureElement.remove();
-        const workToRemove = document.querySelector(`.gallery figure[data-id="${id}"]`);
-        if (workToRemove) workToRemove.remove();
-
-        const index = works.findIndex((work) => work.id === id);
-        if (index !== -1) works.splice(index, 1);
-    }
-}
-
 // Affichage des travaux dans la modale galerie
 function displayModalGallery(works) {
     const grid = document.getElementById("modal-gallery-grid");
@@ -141,13 +114,47 @@ function displayModalGallery(works) {
 </svg>`;
 
         deleteBtn.addEventListener("click", () => {
-            deleteWork(work.id, figure, works);
+            deleteWork(work.id);
         });
 
         figure.appendChild(img);
         figure.appendChild(deleteBtn);
         grid.appendChild(figure);
     });
+}
+
+// Rafraîchit les données depuis l'API, de la même manière qu'au chargement initial
+async function refreshGalleries() {
+    try {
+        const [works, categories] = await Promise.all([getWorks(), getCategories()]);
+        displayWorks(works);
+        displayFilters(categories, works);
+        displayModalGallery(works);
+    } catch (error) {
+        console.error("Erreur lors du rafraîchissement des données :", error);
+    }
+}
+
+// Suppression d'un travail
+async function deleteWork(id) {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`${API_URL}/works/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+        },
+    });
+
+    if (response.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "login.html";
+        return;
+    }
+
+    if (response.ok) {
+        await refreshGalleries();
+    }
 }
 
 // Remplissage du select des catégories dans le formulaire
@@ -233,7 +240,7 @@ function resetAddWorkForm() {
 }
 
 // Ajout d'un nouveau travail
-async function addWork(e, works, categories) {
+async function addWork(e) {
     e.preventDefault();
 
     const existingError = document.getElementById("form-error");
@@ -271,27 +278,14 @@ async function addWork(e, works, categories) {
     }
 
     if (response.ok) {
-        // L'API ne renvoie pas l'objet "category" complet, on le reconstruit
-        // à partir de la catégorie sélectionnée dans le formulaire
-        const newWork = await response.json();
-        newWork.category = {
-            id: Number(categorySelect.value),
-            name: categorySelect.options[categorySelect.selectedIndex].textContent,
-        };
-
-        // Ajout du nouveau travail au tableau partagé, puis réaffichage
-        works.push(newWork);
-        displayWorks(works);
-        displayFilters(categories, works);
-        displayModalGallery(works);
-
+        await refreshGalleries();
         resetAddWorkForm();
         document.body.classList.remove("modal-open");
     }
 }
 
 // Gestion de la modale
-function initModal(works, categories) {
+function initModal() {
     const overlay = document.getElementById("modal-overlay");
     const editBtn = document.getElementById("edit-btn");
     const closeButtons = document.querySelectorAll(".modal-close");
@@ -338,9 +332,7 @@ function initModal(works, categories) {
 
     // Preview image et soumission du formulaire
     initImagePreview();
-    addWorkForm.addEventListener("submit", (e) => {
-        addWork(e, works, categories);
-    });
+    addWorkForm.addEventListener("submit", addWork);
 
     // Mise à jour du style du bouton valider selon la saisie
     titleInput.addEventListener("input", updateValidateButtonState);
@@ -357,7 +349,7 @@ Promise.all([getWorks(), getCategories()])
         if (isLogged) {
             displayModalGallery(works);
             populateCategorySelect(categories);
-            initModal(works, categories);
+            initModal();
         }
     })
     // si impossible de récupérer data de l'API on affiche un front au cas où
